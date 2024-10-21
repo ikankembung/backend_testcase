@@ -7,7 +7,7 @@ const app = express();
 const port = 8000;
 
 app.use(cors({
-    origin: '*',
+    origin: ['http://127.0.0.1:8000', 'http://172.31.202.237:8000'],
     credentials: true
 }));
 
@@ -462,6 +462,6 @@ app.post('/users/login',
     }
 });
 
-app.listen(port, '0.0.0.0', () => {
+app.listen(port, '172.31.202.237', () => {
     console.log(`Server berjalan di http://0.0.0.0:${port}`);
 });
