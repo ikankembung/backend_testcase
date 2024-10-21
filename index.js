@@ -462,6 +462,6 @@ app.post('/users/login',
     }
 });
 
-app.listen(port, '10.25.200.21', () => {
-    console.log(`Server berjalan di http://10.25.200.21:${port}`);
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server berjalan di http://0.0.0.0:${port}`);
 });
