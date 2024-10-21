@@ -463,5 +463,5 @@ app.post('/users/login',
 });
 
 app.listen(port, '172.31.202.237', () => {
-    console.log(`Server berjalan di http://0.0.0.0:${port}`);
+    console.log(`Server berjalan di http://172.31.202.237:${port}`);
 });
