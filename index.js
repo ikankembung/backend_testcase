@@ -157,7 +157,7 @@ const stepResult = await client.query(
 
     'INSERT INTO test_steps (test_cases_id, title, expected_result, actual_result, status, application_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
 
-    [testCase.id, title, description, '-', status, applicationId]
+    [testCase.id, title, description, '-', status, application_id]
 );
 const testStep = stepResult.rows[0];
 
