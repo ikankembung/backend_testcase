@@ -7,8 +7,7 @@ const app = express();
 const port = 8000;
 
 app.use(cors({
-    origin: ['http://127.0.0.1:8000', 'http://172.31.202.237:8000'],
-    credentials: true
+    origin: "*"
 }));
 
 app.use(express.json()); 
@@ -122,7 +121,7 @@ app.get('/test_cases/:id', validateId, (req, res) => {
 });
 
 app.get('/test_cases', (req, res) => {
-    pool.query('SELECT tc.*, rst.status FROM test_cases tc LEFT JOIN ref_status_testing rst ON rst.id = tc.status ORDER BY tc.created_at ASC')
+    pool.query('SELECT tc.*, rst.status, rat.aplikasi FROM test_cases tc LEFT JOIN ref_status_testing rst ON rst.id = tc.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = tc.aplikasi ORDER BY tc.created_at ASC')
         .then(result => res.send(result.rows))
         .catch(e => {
             console.error(e);
@@ -232,7 +231,7 @@ app.delete('/test_cases/:id', validateId, (req, res) => {
 });
 
 app.get('/test_steps', (req, res) => {
-    pool.query('SELECT ts.*, rst.status FROM test_steps ts LEFT JOIN ref_status_testing rst ON rst.id = ts.status ORDER BY ts.created_at ASC')
+    pool.query('SELECT ts.*, rst.status, rat.aplikasi FROM test_steps ts LEFT JOIN ref_status_testing rst ON rst.id = ts.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = ts.aplikasi ORDER BY ts.created_at ASC')
         .then(result => res.send(result.rows))
         .catch(e => {
             console.error(e);
@@ -462,6 +461,6 @@ app.post('/users/login',
     }
 });
 
-app.listen(port, '172.31.202.237', () => {
+app.listen(port, '0.0.0.0', () => {
     console.log(`Server berjalan di http://172.31.202.237:${port}`);
 });
