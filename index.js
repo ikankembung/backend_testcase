@@ -121,7 +121,7 @@ app.get('/test_cases/:id', validateId, (req, res) => {
 });
 
 app.get('/test_cases', (req, res) => {
-    pool.query('SELECT tc.*, rst.status, rat.aplikasi FROM test_cases tc LEFT JOIN ref_status_testing rst ON rst.id = tc.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = tc.aplikasi ORDER BY tc.created_at ASC')
+    pool.query('SELECT tc.*, rst.status, rat.aplikasi FROM test_cases tc LEFT JOIN ref_status_testing rst ON rst.id = tc.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = tc.application_id ORDER BY tc.created_at ASC')
         .then(result => res.send(result.rows))
         .catch(e => {
             console.error(e);
@@ -154,14 +154,16 @@ const result = await client.query(
 const testCase = result.rows[0]; 
 
 const stepResult = await client.query(
-    'INSERT INTO test_steps (test_cases_id, title, expected_result, actual_result, status, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
-    [testCase.id, title, description, '-', status]
+
+    'INSERT INTO test_steps (test_cases_id, title, expected_result, actual_result, status, application_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
+
+    [testCase.id, title, description, '-', status, applicationId]
 );
 const testStep = stepResult.rows[0];
 
 await client.query(
     'INSERT INTO applications (test_cases_id, success, review, bugs, failed, pending, test_steps_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-    [testCase.id, status === 1 ? title : null, status === 2 ? title : null, status === 3 ? title : null, status === 4 ? title : null, status === 5 ? title : null, testStep.id] // Tambahkan testStep.id
+    [testCase.id, status === 1 ? title : null, status === 2 ? title : null, status === 3 ? title : null, status === 4 ? title : null, status === 5 ? title : null, testStep.id]
 );
   
           await client.query('COMMIT');
@@ -194,8 +196,8 @@ await client.query(
         const updatedTestCase = result.rows[0];
 
         const stepResult = await client.query(
-            'UPDATE test_steps SET title = $1, expected_result = $2, actual_result = $3, status = $4, updated_at = CURRENT_TIMESTAMP WHERE test_cases_id = $5 RETURNING *',
-            [title, description, '-', status, req.id]
+            'UPDATE test_steps SET title = $1, expected_result = $2, actual_result = $3, status = $4, application_id = $5, updated_at = CURRENT_TIMESTAMP WHERE test_cases_id = $6 RETURNING *',
+            [title, description, '-', status, application_id, req.id]
         );
 
         const updatedStep = stepResult.rows[0];
@@ -231,7 +233,7 @@ app.delete('/test_cases/:id', validateId, (req, res) => {
 });
 
 app.get('/test_steps', (req, res) => {
-    pool.query('SELECT ts.*, rst.status, rat.aplikasi FROM test_steps ts LEFT JOIN ref_status_testing rst ON rst.id = ts.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = ts.aplikasi ORDER BY ts.created_at ASC')
+    pool.query('SELECT ts.*, rst.status, rat.aplikasi FROM test_steps ts LEFT JOIN ref_status_testing rst ON rst.id = ts.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = ts.application_id ORDER BY ts.created_at ASC')
         .then(result => res.send(result.rows))
         .catch(e => {
             console.error(e);
@@ -295,10 +297,10 @@ app.put('/test_steps/:id', validateId, async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Update test_steps
-        const result = await client.query(
-            'UPDATE test_steps SET title = $1, expected_result = $2, actual_result = $3, status = $4 WHERE id = $5 RETURNING *', 
-            [title, expected_result, actual_result, status, req.id]
+                const result = await client.query(
+            'UPDATE test_steps SET title = $1, expected_result = $2, actual_result = $3, status = $4, application_id = $5 WHERE id = $6 RETURNING *', 
+            [title, expected_result, actual_result, status, applicationId, req.id]
+
         );
 
         if (result.rows.length === 0) {
@@ -307,10 +309,9 @@ app.put('/test_steps/:id', validateId, async (req, res) => {
 
         const updatedStep = result.rows[0];
 
-        // Update test_cases jika diperlukan
         const testCaseResult = await client.query(
             'UPDATE test_cases SET title = $1, description = $2, status = $3 WHERE id = $4 RETURNING *',
-            [title, expected_result, status, test_cases_id] // Sesuaikan dengan kolom yang ingin diperbarui
+            [title, expected_result, status, test_cases_id] 
         );
 
         if (testCaseResult.rows.length === 0) {
@@ -319,7 +320,6 @@ app.put('/test_steps/:id', validateId, async (req, res) => {
 
         const updatedTestCase = testCaseResult.rows[0];
 
-        // Update applications jika diperlukan
         const resultCase = await client.query(
             'SELECT application_id FROM test_cases WHERE id = $1',
             [test_cases_id]
