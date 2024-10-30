@@ -51,6 +51,30 @@ app.get('/applications', (req, res) => {
     });
 });
 
+app.get('/applications', (req, res) => {
+    const { success, review } = req.query; // Mengambil parameter dari query
+
+    let query = 'SELECT * FROM applications WHERE 1=1'; // Awal query
+    const params = [];
+
+    if (success) {
+        query += ' AND success = $' + (params.length + 1);
+        params.push(success);
+    }
+
+    if (review) {
+        query += ' AND review = $' + (params.length + 1);
+        params.push(review);
+    }
+
+    pool.query(query, params) // Menggunakan query dinamis
+        .then(result => res.json(result.rows))
+        .catch(e => {
+            console.error(e);
+            res.status(500).json({ message: 'Gagal mengambil data' });
+        });
+});
+
 app.post('/applications', 
     [
         check('test_cases_id').isInt().withMessage('Test Cases ID harus berupa angka'),
@@ -122,6 +146,32 @@ app.get('/test_cases/:id', validateId, (req, res) => {
 
 app.get('/test_cases', (req, res) => {
     pool.query('SELECT tc.*, rst.status, rat.aplikasi FROM test_cases tc LEFT JOIN ref_status_testing rst ON rst.id = tc.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = tc.application_id ORDER BY tc.created_at ASC')
+        .then(result => res.send(result.rows))
+        .catch(e => {
+            console.error(e);
+            res.status(500).json({ message: 'Gagal mengambil data' });
+        });
+});
+
+app.get('/test_cases', (req, res) => {
+    const { status, application_id } = req.query; // Mengambil parameter dari query
+
+    let query = 'SELECT tc.*, rst.status, rat.aplikasi FROM test_cases tc LEFT JOIN ref_status_testing rst ON rst.id = tc.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = tc.application_id WHERE 1=1';
+    const params = [];
+
+    if (status) {
+        query += ' AND tc.status = $' + (params.length + 1);
+        params.push(status);
+    }
+
+    if (application_id) {
+        query += ' AND tc.application_id = $' + (params.length + 1);
+        params.push(application_id);
+    }
+
+    query += ' ORDER BY tc.created_at ASC'; // Menambahkan urutan
+
+    pool.query(query, params) // Menggunakan query dinamis
         .then(result => res.send(result.rows))
         .catch(e => {
             console.error(e);
@@ -252,6 +302,32 @@ app.get('/test_steps/:id', validateId, (req, res) => {
         .catch(e => {
             console.error('Error fetching test step:', e);
             res.status(500).json({ message: 'Gagal mengambil data test step' });
+        });
+});
+
+app.get('/test_steps', (req, res) => {
+    const { status, test_cases_id } = req.query; // Mengambil parameter dari query
+
+    let query = 'SELECT ts.*, rst.status, rat.aplikasi FROM test_steps ts LEFT JOIN ref_status_testing rst ON rst.id = ts.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = ts.application_id WHERE 1=1';
+    const params = [];
+
+    if (status) {
+        query += ' AND ts.status = $' + (params.length + 1);
+        params.push(status);
+    }
+
+    if (test_cases_id) {
+        query += ' AND ts.test_cases_id = $' + (params.length + 1);
+        params.push(test_cases_id);
+    }
+
+    query += ' ORDER BY ts.created_at ASC'; // Menambahkan urutan
+
+    pool.query(query, params) // Menggunakan query dinamis
+        .then(result => res.send(result.rows))
+        .catch(e => {
+            console.error(e);
+            res.status(500).json({ message: 'Gagal mengambil data' });
         });
 });
 
