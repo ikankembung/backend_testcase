@@ -51,30 +51,20 @@ app.get('/applications', (req, res) => {
     });
 });
 
-app.get('/applications', (req, res) => {
-    const { success, review, failed, bugs } = req.query; 
+app.get('/applications_filter', (req, res) => {
+    const { aplikasi } = req.query; // Mengambil parameter aplikasi
 
-    let query = 'SELECT * FROM applications WHERE 1=1'; 
+    let query = `SELECT 
+            app.*,
+            rat.aplikasi as aplikasi
+        FROM applications as app 
+        LEFT JOIN ref_aplikasi_testing rat ON rat.id = app.application_id 
+        WHERE 1=1`; 
     const params = [];
 
-    if (success) {
-        query += ' AND success = $' + (params.length + 1);
-        params.push(success);
-    }
-
-    if (review) {
-        query += ' AND review = $' + (params.length + 1);
-        params.push(review);
-    }
-
-    if (failed) {
-        query += ' AND failed = $' + (params.length + 1);
-        params.push(failed);
-    }
-
-    if (bugs) {
-        query += ' AND bugs = $' + (params.length + 1);
-        params.push(bugs);
+    if (aplikasi) { // Menggunakan 'aplikasi' yang benar
+        query += ` AND rat.aplikasi ~* $${params.length + 1}`; // Menggunakan parameter untuk filter aplikasi
+        params.push(aplikasi);
     }
 
     pool.query(query, params) 
@@ -163,29 +153,63 @@ app.get('/test_cases', (req, res) => {
         });
 });
 
-app.get('/test_cases', (req, res) => {
-    const { status, application_id } = req.query; // Mengambil parameter dari query
+app.get('/test_cases_filter', (req, res) => {
+    const { status, aplikasi } = req.query;
+    
+    // Log untuk debugging
+    console.log('Received query params:', { status, aplikasi });
 
-    let query = 'SELECT tc.*, rst.status_name, rat.aplikasi FROM test_cases tc LEFT JOIN ref_status_testing rst ON rst.id = tc.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = tc.application_id WHERE 1=1';
+    let query = `
+        SELECT 
+            tc.*,
+            rst.status as status_name,
+            rat.aplikasi as aplikasi
+        FROM test_cases tc 
+        LEFT JOIN ref_status_testing rst ON rst.id = tc.status 
+        LEFT JOIN ref_aplikasi_testing rat ON rat.id = tc.application_id 
+        WHERE 1=1
+    `;
+    
     const params = [];
-
-    if (status) {
-        query += ' AND rst.status_name = $' + (params.length + 1); // Pastikan menggunakan nama kolom yang benar
-        params.push(status); // Pastikan status yang dikirim sesuai dengan yang ada di database
+    console.log("casing 1")
+    console.log(status)
+    
+    // Perbaikan filter status - pastikan tipe data sesuai
+    if (status !== undefined && status !== '') {
+        console.log("casing 2")
+        query += ` AND tc.status = (SELECT id FROM ref_status_testing AS rst2 WHERE rst2.status ~* '${status}')`;
+        // params.push(status.toString());
+        // Log untuk debugging
+        console.log('Adding status filter:', status);
     }
 
-    if (application_id) {
-        query += ' AND tc.application_id = $' + (params.length + 1);
-        params.push(application_id);
+    // Perbaikan filter application
+    if (aplikasi !== undefined && aplikasi !== '') {
+        query += ` AND tc.application_id = (SELECT id FROM ref_aplikasi_testing AS rat2 WHERE rat2.aplikasi ~* '${aplikasi}')`;
+        // params.push(application_id.toString());
+        // Log untuk debugging
+        console.log('Adding application filter:', aplikasi);
     }
 
-    query += ' ORDER BY tc.created_at ASC'; // Menambahkan urutan
+    // Tambahkan ordering
+    query += ' ORDER BY tc.id ASC';
 
-    pool.query(query, params) // Menggunakan query dinamis
-        .then(result => res.send(result.rows))
-        .catch(e => {
-            console.error(e);
-            res.status(500).json({ message: 'Gagal mengambil data' });
+    // Log query final
+    console.log('Final SQL Query:', query);
+    console.log('Query Parameters:', params);
+
+    pool.query(query, params)
+        .then(result => {
+            // Log hasil query
+            console.log('Query returned', result.rows.length, 'rows');
+            res.json(result.rows);
+        })
+        .catch(error => {
+            console.error('Database error:', error);
+            res.status(500).json({
+                message: 'Gagal mengambil data',
+                error: error.message
+            });
         });
 });
 
@@ -315,19 +339,19 @@ app.get('/test_steps/:id', validateId, (req, res) => {
         });
 });
 
-app.get('/test_steps', (req, res) => {
+app.get('/test_steps_filter', (req, res) => {
     const { status, test_cases_id } = req.query; 
 
     let query = 'SELECT ts.*, rst.status, rat.aplikasi FROM test_steps ts LEFT JOIN ref_status_testing rst ON rst.id = ts.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = ts.application_id WHERE 1=1';
     const params = [];
 
     if (status) {
-        query += ' AND ts.status = $' + (params.length + 1);
+        query += ` AND rst.status = $${params.length + 1}`; // Menggunakan alias rst untuk status
         params.push(status);
     }
 
     if (test_cases_id) {
-        query += ' AND ts.test_cases_id = $' + (params.length + 1);
+        query += ` AND ts.test_cases_id = $${params.length + 1}`; // Menggunakan alias ts untuk test_cases_id
         params.push(test_cases_id);
     }
 
