@@ -43,7 +43,8 @@ app.get('/get_status', (req, res) => {
 });
 
 app.get('/applications', (req, res) => {
-    pool.query('SELECT * FROM applications')
+    // Mengubah query untuk menambahkan filter berdasarkan status
+    pool.query('SELECT * FROM applications WHERE status = $1', [req.query.status]) 
     .then(result => res.json(result.rows))
     .catch(e => {
         console.error(e);
