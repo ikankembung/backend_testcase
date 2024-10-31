@@ -54,29 +54,29 @@ app.get('/applications', (req, res) => {
     });
 });
 
-app.get('/applications_filter', (req, res) => {
-    const { aplikasi } = req.query; 
+// app.get('/applications_filter', (req, res) => {
+//     const { aplikasi } = req.query; 
 
-    let query = `SELECT 
-            app.*,
-            rat.aplikasi as aplikasi
-        FROM applications as app 
-        LEFT JOIN ref_aplikasi_testing rat ON rat.id = app.application_id 
-        WHERE 1=1`; 
-    const params = [];
+//     let query = `SELECT 
+//             app.*,
+//             rat.aplikasi as aplikasi
+//         FROM applications as app 
+//         LEFT JOIN ref_aplikasi_testing rat ON rat.id = app.application_id 
+//         WHERE 1=1`; 
+//     const params = [];
 
-    if (aplikasi) { // Menggunakan 'aplikasi' yang benar
-        query += ` AND rat.aplikasi ~* $${params.length + 1}`; // Menggunakan parameter untuk filter aplikasi
-        params.push(aplikasi);
-    }
+//     if (aplikasi) { // Menggunakan 'aplikasi' yang benar
+//         query += ` AND rat.aplikasi ~* $${params.length + 1}`; // Menggunakan parameter untuk filter aplikasi
+//         params.push(aplikasi);
+//     }
 
-    pool.query(query, params) 
-        .then(result => res.json(result.rows))
-        .catch(e => {
-            console.error(e);
-            res.status(500).json({ message: 'Gagal mengambil data' });
-        });
-});
+//     pool.query(query, params) 
+//         .then(result => res.json(result.rows))
+//         .catch(e => {
+//             console.error(e);
+//             res.status(500).json({ message: 'Gagal mengambil data' });
+//         });
+// });
 
 app.post('/applications', 
     [
