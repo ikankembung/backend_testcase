@@ -44,15 +44,18 @@ app.get('/get_status', (req, res) => {
 
 app.get('/applications', (req, res) => {
     pool.query('SELECT * FROM applications')
-    .then(result => res.json(result.rows))
+    .then(result => {
+        console.log('Applications fetched:', result.rows); 
+        res.json(result.rows);
+    })
     .catch(e => {
         console.error(e);
-        req.status(500).json({ message: 'Gagal mengambil data' });
+        res.status(500).json({ message: 'Gagal mengambil data' });
     });
 });
 
 app.get('/applications_filter', (req, res) => {
-    const { aplikasi } = req.query; // Mengambil parameter aplikasi
+    const { aplikasi } = req.query; 
 
     let query = `SELECT 
             app.*,
@@ -156,7 +159,7 @@ app.get('/test_cases', (req, res) => {
 app.get('/test_cases_filter', (req, res) => {
     const { status, aplikasi } = req.query;
     
-    // Log untuk debugging
+    
     console.log('Received query params:', { status, aplikasi });
 
     let query = `
@@ -174,33 +177,31 @@ app.get('/test_cases_filter', (req, res) => {
     console.log("casing 1")
     console.log(status)
     
-    // Perbaikan filter status - pastikan tipe data sesuai
+    
     if (status !== undefined && status !== '') {
         console.log("casing 2")
         query += ` AND tc.status = (SELECT id FROM ref_status_testing AS rst2 WHERE rst2.status ~* '${status}')`;
-        // params.push(status.toString());
-        // Log untuk debugging
+        
         console.log('Adding status filter:', status);
     }
 
-    // Perbaikan filter application
+    
     if (aplikasi !== undefined && aplikasi !== '') {
         query += ` AND tc.application_id = (SELECT id FROM ref_aplikasi_testing AS rat2 WHERE rat2.aplikasi ~* '${aplikasi}')`;
-        // params.push(application_id.toString());
-        // Log untuk debugging
+        
         console.log('Adding application filter:', aplikasi);
     }
 
-    // Tambahkan ordering
+    
     query += ' ORDER BY tc.id ASC';
 
-    // Log query final
+    
     console.log('Final SQL Query:', query);
     console.log('Query Parameters:', params);
 
     pool.query(query, params)
         .then(result => {
-            // Log hasil query
+            
             console.log('Query returned', result.rows.length, 'rows');
             res.json(result.rows);
         })
@@ -246,8 +247,8 @@ const stepResult = await client.query(
 const testStep = stepResult.rows[0];
 
 await client.query(
-    'INSERT INTO applications (test_cases_id, success, review, bugs, failed, pending, test_steps_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-    [testCase.id, status === 1 ? title : null, status === 2 ? title : null, status === 3 ? title : null, status === 4 ? title : null, status === 5 ? title : null, testStep.id]
+    'INSERT INTO applications (test_cases_id, success, review, bugs, failed, pending, test_steps_id, application_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+    [testCase.id, status === 1 ? title : null, status === 2 ? title : null, status === 3 ? title : null, status === 4 ? title : null, status === 5 ? title : null, testStep.id, application_id] // Menambahkan application_id
 );
   
           await client.query('COMMIT');
@@ -287,8 +288,8 @@ await client.query(
         const updatedStep = stepResult.rows[0];
 
         await client.query(
-            'UPDATE applications SET success = $2, review = $3, bugs = $4, failed = $5, pending = $6, test_steps_id = $7 WHERE test_cases_id = $1 RETURNING *',
-            [application_id, status === 1 ? title : null, status === 2 ? title : null, status === 3 ? title : null, status === 4 ? title : null, status === 5 ? title : null, updatedStep.id]
+            'UPDATE applications SET success = $2, review = $3, bugs = $4, failed = $5, pending = $6, test_steps_id = $7, application_id = $8 WHERE test_cases_id = $1 RETURNING *',
+            [application_id, status === 1 ? title : null, status === 2 ? title : null, status === 3 ? title : null, status === 4 ? title : null, status === 5 ? title : null, updatedStep.id, application_id]
         );
 
         await client.query('COMMIT');
@@ -346,12 +347,12 @@ app.get('/test_steps_filter', (req, res) => {
     const params = [];
 
     if (status) {
-        query += ` AND rst.status = $${params.length + 1}`; // Menggunakan alias rst untuk status
+        query += ` AND rst.status = $${params.length + 1}`; 
         params.push(status);
     }
 
     if (test_cases_id) {
-        query += ` AND ts.test_cases_id = $${params.length + 1}`; // Menggunakan alias ts untuk test_cases_id
+        query += ` AND ts.test_cases_id = $${params.length + 1}`; 
         params.push(test_cases_id);
     }
 
@@ -439,8 +440,8 @@ app.put('/test_steps/:id', validateId, async (req, res) => {
             const application_id = resultCase.rows[0].application_id;
 
             await client.query(
-                'UPDATE applications SET success = $2, review = $3, bugs = $4, failed = $5, pending = $6, test_steps_id = $7 WHERE test_cases_id = $1 RETURNING *',
-                [test_cases_id, status === 1 ? title : null, status === 2 ? title : null, status === 3 ? title : null, status === 4 ? title : null, status === 5 ? title : null, updatedStep.id]
+                'UPDATE applications SET success = $2, review = $3, bugs = $4, failed = $5, pending = $6, test_steps_id = $7, application_id = $8 WHERE test_cases_id = $1 RETURNING *',
+                [test_cases_id, status === 1 ? title : null, status === 2 ? title : null, status === 3 ? title : null, status === 4 ? title : null, status === 5 ? title : null, updatedStep.id, application_id] 
             );
         }
 
