@@ -402,7 +402,7 @@ app.post('/test_steps',
 });
 
 app.put('/test_steps/:id', validateId, async (req, res) => {
-    const { title, expected_result, actual_result, status, test_cases_id } = req.body; 
+    const { title, expected_result, actual_result, status, test_cases_id, application_id } = req.body; // Ambil application_id dari body
     const client = await pool.connect();
 
     try {
@@ -410,7 +410,7 @@ app.put('/test_steps/:id', validateId, async (req, res) => {
 
         const result = await client.query(
             'UPDATE test_steps SET title = $1, expected_result = $2, actual_result = $3, status = $4, application_id = $5 WHERE id = $6 RETURNING *', 
-            [title, expected_result, actual_result, status, application_id, req.id] 
+            [title, expected_result, actual_result, status, application_id, req.id] // Menggunakan application_id yang diambil dari body
         );
 
         if (result.rows.length === 0) {
@@ -436,7 +436,7 @@ app.put('/test_steps/:id', validateId, async (req, res) => {
         );
 
         if (resultCase.rows.length > 0) {
-            const application_id = resultCase.rows[0].application_id;
+            const application_id = resultCase.rows[0].application_id; // Mendapatkan application_id dari test_cases
 
             await client.query(
                 'UPDATE applications SET success = $2, review = $3, bugs = $4, failed = $5, pending = $6, test_steps_id = $7, application_id = $8 WHERE test_cases_id = $1 RETURNING *',
