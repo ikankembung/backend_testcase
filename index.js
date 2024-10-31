@@ -54,29 +54,36 @@ app.get('/applications', (req, res) => {
     });
 });
 
-// app.get('/applications_filter', (req, res) => {
-//     const { aplikasi } = req.query; 
+app.get('/applications_filter', (req, res) => {
+    const { aplikasi } = req.query; 
 
-//     let query = `SELECT 
-//             app.*,
-//             rat.aplikasi as aplikasi
-//         FROM applications as app 
-//         LEFT JOIN ref_aplikasi_testing rat ON rat.id = app.application_id 
-//         WHERE 1=1`; 
-//     const params = [];
+    let query = `SELECT 
+            app.*,
+            rat.aplikasi as aplikasi
+        FROM applications as app 
+        LEFT JOIN ref_aplikasi_testing rat ON rat.id = app.application_id
+        WHERE 1=1`; // Menambahkan WHERE 1=1 untuk memudahkan penambahan kondisi
 
-//     if (aplikasi) { // Menggunakan 'aplikasi' yang benar
-//         query += ` AND rat.aplikasi ~* $${params.length + 1}`; // Menggunakan parameter untuk filter aplikasi
-//         params.push(aplikasi);
-//     }
+    const params = [];
 
-//     pool.query(query, params) 
-//         .then(result => res.json(result.rows))
-//         .catch(e => {
-//             console.error(e);
-//             res.status(500).json({ message: 'Gagal mengambil data' });
-//         });
-// });
+    if (aplikasi) { // Menggunakan 'aplikasi' yang benar
+        query += ` AND rat.aplikasi ~* $${params.length + 1}`; // Menggunakan parameter untuk filter aplikasi
+        params.push(aplikasi);
+    }
+
+    console.log('Query:', query); // Log query untuk debugging
+    console.log('Params:', params); // Log params untuk debugging
+
+    pool.query(query, params) 
+        .then(result => {
+            console.log('Result rows:', result.rows.length); // Log jumlah hasil
+            res.json(result.rows);
+        })
+        .catch(e => {
+            console.error(e);
+            res.status(500).json({ message: 'Gagal mengambil data' });
+        });
+});
 
 app.post('/applications', 
     [
