@@ -164,51 +164,28 @@ app.get('/test_cases', (req, res) => {
 });
 
 app.get('/test_cases', (req, res) => {
-    const { status, application_id } = req.query; 
+    const { status, application_id } = req.query; // Mengambil parameter dari query
 
-    // Modifikasi query SQL untuk menangani filter dengan benar
-    let query = `
-        SELECT 
-            tc.*,
-            rst.status_name,  -- Pastikan kolom ini ada di tabel ref_status_testing
-            rat.aplikasi
-        FROM test_cases tc 
-        LEFT JOIN ref_status_testing rst ON rst.id = tc.status 
-        LEFT JOIN ref_aplikasi_testing rat ON rat.id = tc.application_id 
-        WHERE 1=1
-    `;
-    
+    let query = 'SELECT tc.*, rst.status_name, rat.aplikasi FROM test_cases tc LEFT JOIN ref_status_testing rst ON rst.id = tc.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = tc.application_id WHERE 1=1';
     const params = [];
 
-    // Perbaikan filter status
-    if (status && status !== '') {
-        query += ' AND tc.status = $' + (params.length + 1);
-        params.push(status);
+    if (status) {
+        query += ' AND rst.status_name = $' + (params.length + 1); // Pastikan menggunakan nama kolom yang benar
+        params.push(status); // Pastikan status yang dikirim sesuai dengan yang ada di database
     }
 
-    // Perbaikan filter aplikasi
-    if (application_id && application_id !== '') {
+    if (application_id) {
         query += ' AND tc.application_id = $' + (params.length + 1);
         params.push(application_id);
     }
 
-    query += ' ORDER BY tc.created_at DESC';
+    query += ' ORDER BY tc.created_at ASC'; // Menambahkan urutan
 
-    // Tambahkan logging untuk debugging
-    console.log('Query:', query);
-    console.log('Parameters:', params);
-
-    pool.query(query, params)
-        .then(result => {
-            console.log('Query result:', result.rows);
-            res.json(result.rows);
-        })
+    pool.query(query, params) // Menggunakan query dinamis
+        .then(result => res.send(result.rows))
         .catch(e => {
-            console.error('Database error:', e);
-            res.status(500).json({ 
-                message: 'Gagal mengambil data',
-                error: e.message 
-            });
+            console.error(e);
+            res.status(500).json({ message: 'Gagal mengambil data' });
         });
 });
 
