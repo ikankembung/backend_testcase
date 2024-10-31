@@ -52,9 +52,9 @@ app.get('/applications', (req, res) => {
 });
 
 app.get('/applications', (req, res) => {
-    const { success, review } = req.query; // Mengambil parameter dari query
+    const { success, review, failed, bugs } = req.query; 
 
-    let query = 'SELECT * FROM applications WHERE 1=1'; // Awal query
+    let query = 'SELECT * FROM applications WHERE 1=1'; 
     const params = [];
 
     if (success) {
@@ -67,7 +67,17 @@ app.get('/applications', (req, res) => {
         params.push(review);
     }
 
-    pool.query(query, params) // Menggunakan query dinamis
+    if (failed) {
+        query += ' AND failed = $' + (params.length + 1);
+        params.push(failed);
+    }
+
+    if (bugs) {
+        query += ' AND bugs = $' + (params.length + 1);
+        params.push(bugs);
+    }
+
+    pool.query(query, params) 
         .then(result => res.json(result.rows))
         .catch(e => {
             console.error(e);
@@ -154,28 +164,51 @@ app.get('/test_cases', (req, res) => {
 });
 
 app.get('/test_cases', (req, res) => {
-    const { status, application_id } = req.query; // Mengambil parameter dari query
+    const { status, application_id } = req.query; 
 
-    let query = 'SELECT tc.*, rst.status, rat.aplikasi FROM test_cases tc LEFT JOIN ref_status_testing rst ON rst.id = tc.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = tc.application_id WHERE 1=1';
+    // Modifikasi query SQL untuk menangani filter dengan benar
+    let query = `
+        SELECT 
+            tc.*,
+            rst.status_name,  -- Pastikan kolom ini ada di tabel ref_status_testing
+            rat.aplikasi
+        FROM test_cases tc 
+        LEFT JOIN ref_status_testing rst ON rst.id = tc.status 
+        LEFT JOIN ref_aplikasi_testing rat ON rat.id = tc.application_id 
+        WHERE 1=1
+    `;
+    
     const params = [];
 
-    if (status) {
+    // Perbaikan filter status
+    if (status && status !== '') {
         query += ' AND tc.status = $' + (params.length + 1);
         params.push(status);
     }
 
-    if (application_id) {
+    // Perbaikan filter aplikasi
+    if (application_id && application_id !== '') {
         query += ' AND tc.application_id = $' + (params.length + 1);
         params.push(application_id);
     }
 
-    query += ' ORDER BY tc.created_at ASC'; // Menambahkan urutan
+    query += ' ORDER BY tc.created_at DESC';
 
-    pool.query(query, params) // Menggunakan query dinamis
-        .then(result => res.send(result.rows))
+    // Tambahkan logging untuk debugging
+    console.log('Query:', query);
+    console.log('Parameters:', params);
+
+    pool.query(query, params)
+        .then(result => {
+            console.log('Query result:', result.rows);
+            res.json(result.rows);
+        })
         .catch(e => {
-            console.error(e);
-            res.status(500).json({ message: 'Gagal mengambil data' });
+            console.error('Database error:', e);
+            res.status(500).json({ 
+                message: 'Gagal mengambil data',
+                error: e.message 
+            });
         });
 });
 
@@ -306,7 +339,7 @@ app.get('/test_steps/:id', validateId, (req, res) => {
 });
 
 app.get('/test_steps', (req, res) => {
-    const { status, test_cases_id } = req.query; // Mengambil parameter dari query
+    const { status, test_cases_id } = req.query; 
 
     let query = 'SELECT ts.*, rst.status, rat.aplikasi FROM test_steps ts LEFT JOIN ref_status_testing rst ON rst.id = ts.status LEFT JOIN ref_aplikasi_testing rat ON rat.id = ts.application_id WHERE 1=1';
     const params = [];
@@ -321,9 +354,9 @@ app.get('/test_steps', (req, res) => {
         params.push(test_cases_id);
     }
 
-    query += ' ORDER BY ts.created_at ASC'; // Menambahkan urutan
+    query += ' ORDER BY ts.created_at ASC'; 
 
-    pool.query(query, params) // Menggunakan query dinamis
+    pool.query(query, params) 
         .then(result => res.send(result.rows))
         .catch(e => {
             console.error(e);
@@ -411,7 +444,7 @@ app.put('/test_steps/:id', validateId, async (req, res) => {
         }
 
         await client.query('COMMIT');
-        res.send({ updatedStep, updatedTestCase }); // Mengembalikan kedua hasil
+        res.send({ updatedStep, updatedTestCase }); 
     } catch (e) {
         await client.query('ROLLBACK');
         console.error(e);
