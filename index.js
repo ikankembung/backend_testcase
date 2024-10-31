@@ -408,10 +408,9 @@ app.put('/test_steps/:id', validateId, async (req, res) => {
     try {
         await client.query('BEGIN');
 
-                const result = await client.query(
+        const result = await client.query(
             'UPDATE test_steps SET title = $1, expected_result = $2, actual_result = $3, status = $4, application_id = $5 WHERE id = $6 RETURNING *', 
-            [title, expected_result, actual_result, status, application_id, req.id]
-
+            [title, expected_result, actual_result, status, application_id, req.id] 
         );
 
         if (result.rows.length === 0) {
